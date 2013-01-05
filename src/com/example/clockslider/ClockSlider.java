@@ -75,7 +75,10 @@ final class ClockSlider extends View {
     private boolean upPushed;
     private boolean downPushed;
 
-    private String[] mQuantityValues = new String[3901];
+    private double[] mQuantityValues = new double[3901];
+    private int mPreviousArrayIndex = 0;
+    private int mArrayIndex = 0;
+    private int mRoundTrips = 0;
 
     public ClockSlider(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -150,6 +153,14 @@ final class ClockSlider extends View {
         Log.d(TAG, "getStart() called: " + start.getTime());
         return start.getTime();
     }
+    
+    public double getQuantityValue(int index)
+    {
+        if(index < 0 || mQuantityValues.length == 0)
+            return 0.00;
+        
+        return mQuantityValues[index];
+    }
 
     public void setStart(Date now) {
         Log.d(TAG, "setStart() called");
@@ -182,6 +193,25 @@ final class ClockSlider extends View {
         Log.d(TAG, "setMinutes() called: " + minutes);
         postInvalidate();
     }
+    
+    public void setArrayIndex(int index)
+    {
+        index = index + (mRoundTrips * 48);
+        
+        if( mArrayIndex == index )
+            return;
+        
+        if(mArrayIndex-index == 47) // one round trip
+            mRoundTrips ++;
+        else if(mArrayIndex-index == -47 && mRoundTrips != 0)
+            mRoundTrips --;
+        
+        //this.mPreviousArrayIndex = mArrayIndex;
+        this.mArrayIndex = index;
+        
+        Log.d(TAG, "mPreviousarrayIndex=" + mPreviousArrayIndex + ", mArrayIndex=" + mArrayIndex + ",index=" + index + ", mRoundTrips=" + mRoundTrips);
+        
+    }
 
     public Date getEnd() {
         Log.d(TAG, "getEnd() called: " + end.getTime());
@@ -203,7 +233,7 @@ final class ClockSlider extends View {
         drawArc(canvas, startAngle + sweepDegrees, 2, white);
 
         // the grey empty part of the circle
-        drawArc(canvas, startAngle + sweepDegrees + 2, 360 - sweepDegrees - 2, pink);
+        drawArc(canvas, startAngle + sweepDegrees + 2, 360 - sweepDegrees - 2, lightGrey);
     }
 
     private void drawArc(Canvas canvas, int startAngle, int sweepDegrees, Paint paint) {
@@ -234,10 +264,12 @@ final class ClockSlider extends View {
             canvas.drawArc(buttonCircle, 90, 180, true, buttonCirclePaint);
         }
 
+        /*
         String durationText;
         int durationUnitsId;
         long timeInMillis = end.getTimeInMillis();
         String onAtText = DateFormat.getTimeFormat(getContext()).format(timeInMillis);
+        
         if (minutes < 60) {
             durationText = Integer.toString(minutes);
             durationUnitsId = R.string.minutes;
@@ -261,8 +293,10 @@ final class ClockSlider extends View {
         }
         
         String durationUnitsText = getResources().getString(durationUnitsId);
-        canvas.drawText(durationText, centerX, centerY - (diameter * 0.08f), duration);
-        canvas.drawText(durationUnitsText, centerX, centerY + (diameter * 0.06f), duration);
+        */
+        
+        canvas.drawText(getQuantityValue(mArrayIndex) + "", centerX, centerY - (diameter * 0.08f), duration);
+        canvas.drawText("kg", centerX, centerY + (diameter * 0.08f), duration);
 
         // up/down buttons
         Paint downPaint = downPushed ? white : lightGrey;
@@ -331,6 +365,17 @@ final class ClockSlider extends View {
             angle = 360 + angle - startAngle;
             int angleX2 = angle * 2;
             angleX2 = roundToNearest15(angleX2);
+            
+            // ===================
+            int index;
+            if(angleX2>720)
+                index =  (angleX2 - 720) / 15;
+            else
+                index = angleX2 / 15;
+            Log.d(TAG, "onTouchEvent() - index: " + index);
+            setArrayIndex(index);
+            // ===================
+            
             if (angleX2 > 720) {
                 angleX2 = angleX2 - 720; // avoid mod because we prefer 720 over
                                          // 0
@@ -348,15 +393,15 @@ final class ClockSlider extends View {
         double arrayValue = 0;
 
         while (arrayValue < 10) {
-            mQuantityValues[arrayIndex] = (Math.round(arrayValue * 100.0) / 100.0) + "";
+            mQuantityValues[arrayIndex] = (Math.round(arrayValue * 100.0) / 100.0);
             arrayValue += 0.01;
             arrayIndex++;
         }
 
-        mQuantityValues[arrayIndex] = (Math.round(arrayValue * 10.0) / 10.0) + "";
+        mQuantityValues[arrayIndex] = (Math.round(arrayValue * 10.0) / 10.0);
 
         while (arrayValue < 300) {
-            mQuantityValues[arrayIndex] = (Math.round(arrayValue * 10.0) / 10.0) + "";
+            mQuantityValues[arrayIndex] = (Math.round(arrayValue * 10.0) / 10.0);
             arrayValue += 0.1;
             arrayIndex++;
         }
@@ -398,22 +443,22 @@ final class ClockSlider extends View {
         if (x >= centerX && y < centerY) {
             double opp = x - centerX;
             double adj = centerY - y;
-            Log.d(TAG, "pointToAngle() called: " + 270 + (int) Math.toDegrees(Math.atan(opp / adj)));
+            Log.d(TAG, "pointToAngle() called. opp: " + opp + ", adj: " + adj + " = " + 270 + (int) Math.toDegrees(Math.atan(opp / adj)));
             return 270 + (int) Math.toDegrees(Math.atan(opp / adj));
         } else if (x > centerX && y >= centerY) {
             double opp = y - centerY;
             double adj = x - centerX;
-            Log.d(TAG, "pointToAngle() called: " + (int) Math.toDegrees(Math.atan(opp / adj)));
+            Log.d(TAG, "pointToAngle() called. opp: " + opp + ", adj: " + adj + " = " + (int) Math.toDegrees(Math.atan(opp / adj)));
             return (int) Math.toDegrees(Math.atan(opp / adj));
         } else if (x <= centerX && y > centerY) {
             double opp = centerX - x;
             double adj = y - centerY;
-            Log.d(TAG, "pointToAngle() called: " + 90 + (int) Math.toDegrees(Math.atan(opp / adj)));
+            Log.d(TAG, "pointToAngle() called. opp: " + opp + ", adj: " + adj + " = " +  90 + (int) Math.toDegrees(Math.atan(opp / adj)));
             return 90 + (int) Math.toDegrees(Math.atan(opp / adj));
         } else if (x < centerX && y <= centerY) {
             double opp = centerY - y;
             double adj = centerX - x;
-            Log.d(TAG, "pointToAngle() called: " + 180 + (int) Math.toDegrees(Math.atan(opp / adj)));
+            Log.d(TAG, "pointToAngle() called. opp: " + opp + ", adj: " + adj + " = " +  180 + (int) Math.toDegrees(Math.atan(opp / adj)));
             return 180 + (int) Math.toDegrees(Math.atan(opp / adj));
         }
 
