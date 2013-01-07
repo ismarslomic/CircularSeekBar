@@ -22,22 +22,32 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         View dialogView = getLayoutInflater().inflate(R.layout.main, null);
         clockSlider = (ClockSlider) dialogView.findViewById(R.id.clockSlider);
+        
+        // Setting the colors of the circle
         clockSlider.setEmptyCircleColor(Color.GRAY);
         clockSlider.setSelectedCircleColor(Color.WHITE);
         clockSlider.setSeekBarThumsColor(Color.BLACK);
-        clockSlider.setButtonPushedColor(Color.WHITE);
+        clockSlider.setButtonPushedColor(Color.LTGRAY);
 
+        // Setting the values that seek bar will iterate through
         generateValueArray();
         clockSlider.setValueArray(mValueArray);
         
+        // Setting the start value
         if (savedInstanceState != null) // restoring previous state
         {
             double value = savedInstanceState.getDouble(ARGS_VALUE);
             clockSlider.setSelectedStepForValue(value);
         }
-        else
+        else // setting default value
             clockSlider.setSelectedStepForValue(75.5);
 
+        // Setting the value unit name displayed in the middle, below the value 
+        clockSlider.setValueUnitName("inch");
+        
+        // Sets how many steps should be changed when pressing + and - buttons
+        clockSlider.setButtonChangeInterval(10);
+        
         setContentView(dialogView);
     }
 

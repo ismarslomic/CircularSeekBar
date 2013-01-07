@@ -22,6 +22,10 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 
+/**
+ * @author ismar.slomic
+ *
+ */
 final class ClockSlider extends View {
     /** Dimensions and graphical shapes of the circle and buttons **/
     private int mWidth;
@@ -41,7 +45,7 @@ final class ClockSlider extends View {
     private Paint mThumbColor = new Paint();
     private Paint mSelectedCircleColor = new Paint();
 
-    /** Text in the midle of the circle **/
+    /** Text syle for the text in the midle of the circle **/
     private Paint mTextStyle = new Paint();
     
     /** Buttons **/
@@ -61,6 +65,7 @@ final class ClockSlider extends View {
   
     /** Array of values that the slider iterates through **/ 
     private double[] mValueArray = new double[0];
+    private String mValueUnitName = "kg";
     
     /** Logging **/
     private String TAG = ClockSlider.class.getName();
@@ -158,29 +163,30 @@ final class ClockSlider extends View {
         float maxUpDown = (mDiameter * 0.8f) / 2;
 
      
-        // handle increment/decrement
+        // handle increment/decrement button events
         if (distanceFromCenterSquared < (maxUpDown * maxUpDown)) 
         {
-            boolean up = touchX > mCenterX;
+            boolean isIncrease = touchX > mCenterX;
 
-            if (event.getAction() == MotionEvent.ACTION_DOWN
-                    || event.getAction() == MotionEvent.ACTION_MOVE) {
-                if (up) 
+            if( event.getAction() == MotionEvent.ACTION_DOWN || 
+                    event.getAction() == MotionEvent.ACTION_MOVE)
+            {
+                if (isIncrease) 
+                {
                     mIsIncreasePushed = true;
+                    increaseStep(mButtonChangeInterval);
+                }
                  else 
+                 {
                     mIsDecreasePushed = true;
-                postInvalidate();
-                return true;
-            }          
+                    decreaseStep(mButtonChangeInterval);
+                 }
+            }
             
-            if(up)
-                increaseStep(mButtonChangeInterval);
-            else
-                decreaseStep(mButtonChangeInterval);
-
+            postInvalidate();
             return true;
-
-            // if it's on the slider, handle that
+            
+        // if it's on the slider, handle sliders events
         } else if (distanceFromCenterSquared < (maxSlider * maxSlider)) 
         {
             int angle = pointToAngle(touchX, touchY);
@@ -215,22 +221,27 @@ final class ClockSlider extends View {
         setMeasuredDimension(width, height);
     }
     
-    /**************** COLOR METHOD ****************/
+    /**************** COLOR METHODS ****************/
+    
+    /** Sets the color of the remaining/empty circle in the middle**/
     public void setEmptyCircleColor(int color)
     {
         mEmptyCircleColor.setColor(color);
     }
     
+    /** Sets the color of the circle in the middle for selected steps from start to selected step**/
     public void setSelectedCircleColor(int color)
     {
         mSelectedCircleColor.setColor(color);
     }
     
+    /** Sets the color of the seek bar thumb**/
     public void setSeekBarThumsColor(int color)
     {
         mThumbColor.setColor(color);
     }
     
+    /** Sets the color of the buttons in the middle when they are pushed **/
     public void setButtonPushedColor(int color)
     {
         mButtonPushedColor.setColor(color);
@@ -276,7 +287,7 @@ final class ClockSlider extends View {
 
         // Writing the text in the middle
         canvas.drawText(getValueAtStep(mSelectedStep) + "", mCenterX, mCenterY - (mDiameter * 0.08f), mTextStyle);
-        canvas.drawText("kg", mCenterX, mCenterY + (mDiameter * 0.08f), mTextStyle);
+        canvas.drawText(mValueUnitName, mCenterX, mCenterY + (mDiameter * 0.08f), mTextStyle);
 
         // up/down buttons
         Paint downPaint = mIsDecreasePushed ? mThumbColor : mEmptyCircleColor;
@@ -432,10 +443,36 @@ final class ClockSlider extends View {
         }
     }
     
+    /** The unit name of the values. This name is displayed in the middle of the circle **/
+    public void setValueUnitName(String name)
+    {
+        mValueUnitName = name;
+    }
+    
+    /** Returns the unit name of the values in the seek bar**/
+    public String getValueUnitName()
+    {
+        return mValueUnitName;
+    }
+    
     /** Returns the selected step in the seek bar **/
     public int getSelectedStep()
     {
         return mSelectedStep;
+    }
+    
+    
+    /**
+     * Sets the increment/decrement value of the seek bar
+     * 
+     * @param stepInterval positive value
+     */
+    public void setButtonChangeInterval(int stepInterval)
+    {
+        if(stepInterval < 0 )
+            return;
+        
+        mButtonChangeInterval = stepInterval;
     }
        
     /***********************  STEP MANAGEMENT METHODS ******************/
