@@ -1,8 +1,8 @@
 /**
  * Author: Ismar Slomic (ismar@slomic.no)
  * 
- * This implementation is based on the ClockSlider.java made 
- * by Jesse Wilson. For more information visist 
+ * This circular seek bar example is based on the ClockSlider used 
+ * in the Shush! app made by Jesse Wilson. For more information visit 
  * http://code.google.com/p/publicobject/source/browse/shush/
  * 
  */
