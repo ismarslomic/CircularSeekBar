@@ -1,3 +1,12 @@
+/**
+ * Author: Ismar Slomic (ismar@slomic.no)
+ * 
+ * This implementation is based on the ClockSlider.java made 
+ * by Jesse Wilson. For more information visist 
+ * http://code.google.com/p/publicobject/source/browse/shush/
+ * 
+ */
+
 
 package com.example.clockslider;
 
@@ -43,18 +52,18 @@ final class ClockSlider extends View {
     private int mButtonChangeInterval = 5;
     
     /** Angles **/
-    private int mStartAngle = 270; // 360 degrees but since path.arcTo 360 = 90 degrees
+    private int mStartAngle = 270; // 360 in path.arcTo
     private int mAngleIncrement = 10;
     
     /** Steps **/
     private int mSelectedStep = 0;
     private int mTotalSteps = 360 / mAngleIncrement; // 360 degrees
-    // Count of how many round trips in the slider user had to pick current array index
-    private int mRoundTrips = 0;
+    private int mRoundTrips = 0; // count of round trips in the circle
   
-    // Array of quantitie values that the slider iterates through
-    private double[] mQuantityValues = new double[3901];
+    /** Array of values that the slider iterates through **/ 
+    private double[] mValueArray = new double[3901];
     
+    /** Logging **/
     private String TAG = ClockSlider.class.getName();
 
     public ClockSlider(Context context, AttributeSet attrs) {
@@ -79,7 +88,7 @@ final class ClockSlider extends View {
         mButtonCirclePaint.setAntiAlias(true);
     }
 
-    /** ============= Interface methods ================ **/
+    /****************** INTERFACE METHODS ****************/
 
     /**
      * Main method, orchestrating the drawing of the circular seek bar, buttons and rest of
@@ -90,7 +99,7 @@ final class ClockSlider extends View {
         super.onDraw(canvas);
 
         /** Generate the values that seek bar is iterating through **/
-        generateQuantityValues();
+        generateValueArray();
         
         /** A. Calculates dimension of the circular seek bar*/
         if (getWidth() != mWidth || getHeight() != mHeight) {
@@ -153,22 +162,19 @@ final class ClockSlider extends View {
         float maxUpDown = (mDiameter * 0.8f) / 2;
 
      
-     // handle increment/decrement
+        // handle increment/decrement
         if (distanceFromCenterSquared < (maxUpDown * maxUpDown)) 
         {
             boolean up = touchX > mCenterX;
 
             if (event.getAction() == MotionEvent.ACTION_DOWN
                     || event.getAction() == MotionEvent.ACTION_MOVE) {
-                if (up) {
+                if (up) 
                     mIsIncreasePushed = true;
-                } else {
+                 else 
                     mIsDecreasePushed = true;
-                }
-
                 postInvalidate();
                 return true;
-                
             }          
             
             if(up)
@@ -213,7 +219,7 @@ final class ClockSlider extends View {
         setMeasuredDimension(width, height);
     }
 
-    /** ============= Helper methods  ================ **/
+    /**************** DRAWING HELPER METHODS ****************/
     
     /**
      * Draw a circle and an arc of the selected step, from start thru end.
@@ -252,7 +258,7 @@ final class ClockSlider extends View {
         }
 
         // Writing the text in the middle
-        canvas.drawText(getQuantityValue(mSelectedStep) + "", mCenterX, mCenterY - (mDiameter * 0.08f), mTextStyle);
+        canvas.drawText(getValueAtStep(mSelectedStep) + "", mCenterX, mCenterY - (mDiameter * 0.08f), mTextStyle);
         canvas.drawText("kg", mCenterX, mCenterY + (mDiameter * 0.08f), mTextStyle);
 
         // up/down buttons
@@ -281,25 +287,56 @@ final class ClockSlider extends View {
         canvas.drawPath(mPath, paint);
     }
     
+    /******************* GETTERS AND SETTES *************/
+    
+    /** Returns sweep angle for given step.
+     * 
+     *  Example: step 12 returns sweep angle 120 
+     */
     public int getSweepAngleForStep(int step)
     {
         step = step % mTotalSteps; // in case the current step belong to other round trips
         return step * mAngleIncrement;
     }
-    
+
+    /** Returns step for given sweep angle.
+     * 
+     *  Example: sweep angle 120 returns step 12
+     */
     public int getStepForSweepAngle(int sweepAngle)
     {
         return sweepAngle / mAngleIncrement;
     }
     
+    /** Returns the round trips in the circle seek bar **/
+    public int getRoundTrips()
+    {
+        return this.mRoundTrips;
+    }
+    
+    /** Sets the array of double values of the seek bar and invalidate current step selection **/
+    public void setValueArray(double[] values)
+    {
+        this.mValueArray = values;
+        this.mSelectedStep = 0;
+        this.mRoundTrips = 0;
+        postInvalidate();
+    }
+    
+    /**
+     * Sets the selected step in the circle according to the current round trip. 
+     * 
+     * Must be positive value and less then valueArray.length
+     * 
+     */
     public void setSelectedStep(int step)
     {
-        if(step < 0)
-            step = 0;
+        if(step < 0 ) // ignore negative steps
+            return;
         
         step += (mRoundTrips * mTotalSteps);
         
-        if( mSelectedStep == step ) // do nothing if the step is the same as the current selected step
+        if( mSelectedStep == step || step > mValueArray.length) // do nothing if the step is the same as the current selected step or greater then array lenght
             return;
         
         Log.d(TAG, "Selected step: " + mSelectedStep + ", new step: " + step + ", total steps: " + mTotalSteps + ", round trips: " + mRoundTrips + ", modulus: " + (mSelectedStep%mTotalSteps));
@@ -314,6 +351,80 @@ final class ClockSlider extends View {
         Log.d(TAG, "Setting selected step to: " + mSelectedStep + " and round trips is now: " + mRoundTrips);
         postInvalidate();
     }
+    
+    /** Returns value at given step. If step outside of the index range of array 0.00 will be returned **/
+    public double getValueAtStep(int step)
+    {
+        if(step < 0 || mValueArray.length == 0)
+            return 0.00;
+        
+        return mValueArray[step];
+    }
+    
+    /** Generates the values in the valueArray **/
+    private void generateValueArray() {
+        int arrayIndex = 0;
+        double arrayValue = 0;
+
+        while (arrayValue < 10) {
+            mValueArray[arrayIndex] = (Math.round(arrayValue * 100.0) / 100.0);
+            arrayValue += 0.01;
+            arrayIndex++;
+        }
+
+        mValueArray[arrayIndex] = (Math.round(arrayValue * 10.0) / 10.0);
+
+        while (arrayValue < 300) {
+            mValueArray[arrayIndex] = (Math.round(arrayValue * 10.0) / 10.0);
+            arrayValue += 0.1;
+            arrayIndex++;
+        }
+    }
+    
+    /***********************  STEP MANAGEMENT METHODS ******************/
+    
+    /** 
+     * Increases selected step with given increment. 
+     * 
+     * @param increment positive value less then valueArray.length
+     * 
+     * **/
+    public void increaseStep(int increment)
+    {
+        if(increment < 0 )
+            return;
+        
+        int step = mSelectedStep + increment;
+        
+        if(step >= mValueArray.length)
+            step = mValueArray.length-1;
+        
+        mRoundTrips = (step / mTotalSteps);
+        mSelectedStep = step;
+        
+        postInvalidate();
+    }
+    
+    /** 
+     * Decreases selected step with given decrement. 
+     * 
+     * @param decrement positive value. Will not decrease to step below zero.
+     * 
+     * **/
+    public void decreaseStep(int decrement)
+    {
+        int step = mSelectedStep - decrement;
+        
+        if(step < 0)
+            step = 0;
+        
+        mRoundTrips = (step / mTotalSteps);
+        mSelectedStep = step;
+        
+        postInvalidate();
+    }
+
+    /****************** METHODS FOR GETTING SELECTED ANGLE ***********/
     
     /**
      * Convert the angle into a sweep angle. The sweep angle is a
@@ -390,58 +501,5 @@ final class ClockSlider extends View {
     private int roundToNearest(int angle) 
     {
         return ((angle + 5) / 10) * 10;
-    }
-    
-    public void increaseStep(int increment)
-    {
-        int step = mSelectedStep + increment;
-        
-        if(step >= mQuantityValues.length)
-            return;
-        
-        mRoundTrips = (step / mTotalSteps);
-        mSelectedStep = step;
-        
-        postInvalidate();
-    }
-    
-    public void decreaseStep(int decrement)
-    {
-        int step = mSelectedStep - decrement;
-        
-        if(step < 0)
-            return;
-        
-        mRoundTrips = (step / mTotalSteps);
-        mSelectedStep = step;
-        
-        postInvalidate();
-    }
-    
-    private void generateQuantityValues() {
-        int arrayIndex = 0;
-        double arrayValue = 0;
-
-        while (arrayValue < 10) {
-            mQuantityValues[arrayIndex] = (Math.round(arrayValue * 100.0) / 100.0);
-            arrayValue += 0.01;
-            arrayIndex++;
-        }
-
-        mQuantityValues[arrayIndex] = (Math.round(arrayValue * 10.0) / 10.0);
-
-        while (arrayValue < 300) {
-            mQuantityValues[arrayIndex] = (Math.round(arrayValue * 10.0) / 10.0);
-            arrayValue += 0.1;
-            arrayIndex++;
-        }
-    }
-    
-    public double getQuantityValue(int index)
-    {
-        if(index < 0 || mQuantityValues.length == 0)
-            return 0.00;
-        
-        return mQuantityValues[index];
     }
 }
