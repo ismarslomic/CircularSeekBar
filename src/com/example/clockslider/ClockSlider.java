@@ -7,7 +7,6 @@
  * 
  */
 
-
 package com.example.clockslider;
 
 import android.content.Context;
