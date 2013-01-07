@@ -48,7 +48,7 @@ final class ClockSlider extends View {
     /** Buttons **/
     private boolean mIsIncreasePushed;
     private boolean mIsDecreasePushed;
-    private Paint mButtonCirclePaint = new Paint();
+    private Paint mButtonPushedColor = new Paint();
     private int mButtonChangeInterval = 5;
     
     /** Angles **/
@@ -61,7 +61,7 @@ final class ClockSlider extends View {
     private int mRoundTrips = 0; // count of round trips in the circle
   
     /** Array of values that the slider iterates through **/ 
-    private double[] mValueArray = new double[3901];
+    private double[] mValueArray = new double[0];
     
     /** Logging **/
     private String TAG = ClockSlider.class.getName();
@@ -70,9 +70,9 @@ final class ClockSlider extends View {
         super(context, attrs);
 
         /** Initialize colors of the circles **/
-        mEmptyCircleColor.setColor(Color.rgb(115, 115, 115));
+        mEmptyCircleColor.setColor(Color.rgb(115, 115, 115)); // grey color
         mEmptyCircleColor.setAntiAlias(true);
-        mSelectedCircleColor.setColor(Color.rgb(255, 0, 165));
+        mSelectedCircleColor.setColor(Color.rgb(255, 0, 165)); // pink color
         mSelectedCircleColor.setAntiAlias(true);
         mThumbColor.setColor(Color.WHITE);
         mThumbColor.setAntiAlias(true);
@@ -84,8 +84,8 @@ final class ClockSlider extends View {
         mTextStyle.setTextAlign(Paint.Align.CENTER);
         
         /** Initialize the buttons **/
-        mButtonCirclePaint.setColor(Color.argb(102, 115, 115, 115));
-        mButtonCirclePaint.setAntiAlias(true);
+        mButtonPushedColor.setColor(Color.argb(102, 115, 115, 115)); // light grey color
+        mButtonPushedColor.setAntiAlias(true);
     }
 
     /****************** INTERFACE METHODS ****************/
@@ -97,9 +97,6 @@ final class ClockSlider extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-
-        /** Generate the values that seek bar is iterating through **/
-        generateValueArray();
         
         /** A. Calculates dimension of the circular seek bar*/
         if (getWidth() != mWidth || getHeight() != mHeight) {
@@ -218,6 +215,27 @@ final class ClockSlider extends View {
 
         setMeasuredDimension(width, height);
     }
+    
+    /**************** COLOR METHOD ****************/
+    public void setEmptyCircleColor(int color)
+    {
+        mEmptyCircleColor.setColor(color);
+    }
+    
+    public void setSelectedCircleColor(int color)
+    {
+        mSelectedCircleColor.setColor(color);
+    }
+    
+    public void setSeekBarThumsColor(int color)
+    {
+        mThumbColor.setColor(color);
+    }
+    
+    public void setButtonPushedColor(int color)
+    {
+        mButtonPushedColor.setColor(color);
+    }
 
     /**************** DRAWING HELPER METHODS ****************/
     
@@ -251,10 +269,10 @@ final class ClockSlider extends View {
 
         // up/down button backgrounds
         if (mIsIncreasePushed) {
-            canvas.drawArc(mButtonCircle, 270, 180, true, mButtonCirclePaint);
+            canvas.drawArc(mButtonCircle, 270, 180, true, mButtonPushedColor);
         }
         if (mIsDecreasePushed) {
-            canvas.drawArc(mButtonCircle, 90, 180, true, mButtonCirclePaint);
+            canvas.drawArc(mButtonCircle, 90, 180, true, mButtonPushedColor);
         }
 
         // Writing the text in the middle
@@ -332,55 +350,95 @@ final class ClockSlider extends View {
     public void setSelectedStep(int step)
     {
         if(step < 0 ) // ignore negative steps
-            return;
+            step = 0;
         
-        step += (mRoundTrips * mTotalSteps);
-        
-        if( mSelectedStep == step || step > mValueArray.length) // do nothing if the step is the same as the current selected step or greater then array lenght
-            return;
-        
-        Log.d(TAG, "Selected step: " + mSelectedStep + ", new step: " + step + ", total steps: " + mTotalSteps + ", round trips: " + mRoundTrips + ", modulus: " + (mSelectedStep%mTotalSteps));
-        
-        if(mSelectedStep-step == mTotalSteps-1) // add one round trip
-            mRoundTrips ++;
-        else if(mSelectedStep - step == -(mTotalSteps-1) && mRoundTrips != 0) // reduce one round trip
-            mRoundTrips --;
-
-        this.mSelectedStep = step;
- 
-        Log.d(TAG, "Setting selected step to: " + mSelectedStep + " and round trips is now: " + mRoundTrips);
+        if(step > mTotalSteps) // the step is set from the code
+        {
+            mRoundTrips = (step / mTotalSteps); // set round trips
+            mSelectedStep = step; // set selected step
+            Log.d(TAG, "Setting selected step to: " + mSelectedStep + " and round trips is now: " + mRoundTrips);
+        }
+        else // the step is set from seek bar
+        {
+            step += (mRoundTrips * mTotalSteps);
+            
+            if( mSelectedStep == step || step > mValueArray.length) // do nothing if the step is the same as the current selected step or greater then array lenght
+            {
+                step = 0;
+                return; 
+            }
+            
+            Log.d(TAG, "Selected step: " + mSelectedStep + ", new step: " + step + ", total steps: " + mTotalSteps + ", round trips: " + mRoundTrips + ", modulus: " + (mSelectedStep%mTotalSteps));
+            
+            if(mSelectedStep-step == mTotalSteps-1) // add one round trip
+                mRoundTrips ++;
+            else if(mSelectedStep - step == -(mTotalSteps-1) && mRoundTrips != 0) // reduce one round trip
+                mRoundTrips --;
+    
+            this.mSelectedStep = step;
+     
+            Log.d(TAG, "Setting selected step to: " + mSelectedStep + " and round trips is now: " + mRoundTrips);
+        }
         postInvalidate();
     }
     
-    /** Returns value at given step. If step outside of the index range of array 0.00 will be returned **/
+    /** Returns value at given step. 
+     * 
+     * @param step positive value in the index range of the valueArray
+     * @return value at given step. If the step is outside of the index range of valueArray 0.00 will be returned 
+     */
     public double getValueAtStep(int step)
     {
-        if(step < 0 || mValueArray.length == 0)
+        if(step < 0 || mValueArray == null || mValueArray.length == 0 || step >= mValueArray.length)
             return 0.00;
         
         return mValueArray[step];
     }
     
-    /** Generates the values in the valueArray **/
-    private void generateValueArray() {
-        int arrayIndex = 0;
-        double arrayValue = 0;
-
-        while (arrayValue < 10) {
-            mValueArray[arrayIndex] = (Math.round(arrayValue * 100.0) / 100.0);
-            arrayValue += 0.01;
-            arrayIndex++;
-        }
-
-        mValueArray[arrayIndex] = (Math.round(arrayValue * 10.0) / 10.0);
-
-        while (arrayValue < 300) {
-            mValueArray[arrayIndex] = (Math.round(arrayValue * 10.0) / 10.0);
-            arrayValue += 0.1;
-            arrayIndex++;
+    /** 
+     *  Returns the value for the selected step in the seek bar.
+     *  
+     *  @return value for the selected step or 0.00 if the valueArray is empty
+     * 
+     * **/
+    public double getSelectedValue()
+    {
+        if(mValueArray != null && mValueArray.length > 0)
+            return mValueArray[mSelectedStep];
+        else
+            return 0.00;
+    }
+    
+    
+    /**
+     * Finds the first occurrence of the value in the valueArray and 
+     * sets the selected step to it. 
+     * 
+     * @param value that is going to be selected in the seek bar. If not found no change will be done.
+     */
+    public void setSelectedStepForValue(double value)
+    {
+        // find the first index/step of the value in the valueArray
+        if(mValueArray != null && mValueArray.length > 0)
+        {
+            for (int step = 0; step < mValueArray.length; step++) 
+            {
+                if(mValueArray[step] == value)
+                {
+                    // set the selected step to the value index/step
+                    setSelectedStep(step);
+                    return;
+                }
+            }
         }
     }
     
+    /** Returns the selected step in the seek bar **/
+    public int getSelectedStep()
+    {
+        return mSelectedStep;
+    }
+       
     /***********************  STEP MANAGEMENT METHODS ******************/
     
     /** 
