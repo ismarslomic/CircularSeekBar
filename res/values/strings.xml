@@ -1,7 +1,4 @@
 <?xml version='1.0'?>
 <resources>
-    <string name="title">ClockSlider Example</string>
-    <string name="minutes">minutes</string>
-    <string name="hour">hour</string>
-    <string name="hours">hours</string>   
+    <string name="title">CircularSeekBar</string>
 </resources>
