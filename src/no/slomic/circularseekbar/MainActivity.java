@@ -42,8 +42,18 @@ public class MainActivity extends Activity {
         else // setting default value
             mCircularSeekBar.setSelectedStepForValue(75.5);
 
-        // Setting the value unit name displayed in the middle, below the value 
-        mCircularSeekBar.setValueUnitName("inch");
+        // Formatting the value into a string representation
+        CircularSeekBar.Formatter f = new CircularSeekBar.Formatter()
+        {
+
+            @Override
+            public String format(double value) 
+            {
+                return String.valueOf(value) + " kg";
+            }
+            
+        };
+        mCircularSeekBar.setFormatter(f);
         
         // Sets how many steps should be changed when pressing + and - buttons
         mCircularSeekBar.setButtonChangeInterval(10);

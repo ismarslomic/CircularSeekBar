@@ -30,7 +30,11 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.NumberPicker;
 
+/**
+ * @author ismar.slomic
+ */
 final class CircularSeekBar extends View {
     /** Dimensions and graphical shapes of the circle and buttons **/
     private int mWidth;
@@ -70,10 +74,12 @@ final class CircularSeekBar extends View {
 
     /** Array of values that the slider iterates through **/
     private double[] mValueArray = new double[0];
-    private String mValueUnitName = "kg";
 
     /** Logging **/
     private String TAG = CircularSeekBar.class.getName();
+
+    /** Formatter **/
+    private Formatter mFormatter;
 
     public CircularSeekBar(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -277,6 +283,10 @@ final class CircularSeekBar extends View {
                 + (360 - sweepDegrees - mStepThumbTickness));
     }
 
+    private String formatValue(double value) {
+        return (mFormatter != null) ? mFormatter.format(value) : String.valueOf(value);
+    }
+
     /**
      * Write labels in the middle of the circle
      */
@@ -292,29 +302,25 @@ final class CircularSeekBar extends View {
         }
 
         // Writing the text in the middle
-        StaticLayout sl = new StaticLayout(mValueArray[mSelectedStep] + mValueUnitName,
-                mTextStyle, 
-                280, 
-                Layout.Alignment.ALIGN_NORMAL,
-                1.f,
-                0,
-                true);
-       
+        String formattedValue = formatValue(mValueArray[mSelectedStep]);
+        StaticLayout sl = new StaticLayout(formattedValue, mTextStyle, 280,
+                Layout.Alignment.ALIGN_NORMAL, 1.f, 0, true);
+
         canvas.save();
         canvas.translate(mCenterX, mCenterY - (mDiameter * 0.30f));
         sl.draw(canvas);
         canvas.restore();
- 
+
         // up/down buttons
         Paint downPaint = mIsDecreasePushed ? mThumbColor : mEmptyCircleColor;
-        canvas.drawRect(mCenterX - mDiameter * 0.32f, mCenterY - mDiameter * 0.01f, mCenterX - mDiameter
-                * 0.22f, mCenterY + mDiameter * 0.01f, downPaint);
-        
+        canvas.drawRect(mCenterX - mDiameter * 0.32f, mCenterY - mDiameter * 0.01f, mCenterX
+                - mDiameter * 0.22f, mCenterY + mDiameter * 0.01f, downPaint);
+
         Paint upPaint = mIsIncreasePushed ? mThumbColor : mEmptyCircleColor;
-        canvas.drawRect(mCenterX + mDiameter * 0.22f, mCenterY - mDiameter * 0.01f, mCenterX + mDiameter
-                * 0.32f, mCenterY + mDiameter * 0.01f, upPaint);
-        canvas.drawRect(mCenterX + mDiameter * 0.26f, mCenterY - mDiameter * 0.05f, mCenterX + mDiameter
-                * 0.28f, mCenterY + mDiameter * 0.05f, upPaint);
+        canvas.drawRect(mCenterX + mDiameter * 0.22f, mCenterY - mDiameter * 0.01f, mCenterX
+                + mDiameter * 0.32f, mCenterY + mDiameter * 0.01f, upPaint);
+        canvas.drawRect(mCenterX + mDiameter * 0.26f, mCenterY - mDiameter * 0.05f, mCenterX
+                + mDiameter * 0.28f, mCenterY + mDiameter * 0.05f, upPaint);
     }
 
     /** Generic method for drawing arcs **/
@@ -470,19 +476,6 @@ final class CircularSeekBar extends View {
         }
     }
 
-    /**
-     * The unit name of the values. This name is displayed in the middle of the
-     * circle
-     **/
-    public void setValueUnitName(String name) {
-        mValueUnitName = name;
-    }
-
-    /** Returns the unit name of the values in the seek bar **/
-    public String getValueUnitName() {
-        return mValueUnitName;
-    }
-
     /** Returns the selected step in the seek bar **/
     public int getSelectedStep() {
         return mSelectedStep;
@@ -498,6 +491,14 @@ final class CircularSeekBar extends View {
             return;
 
         mButtonChangeInterval = stepInterval;
+    }
+
+    public void setFormatter(Formatter formatter) {
+        if (formatter == mFormatter)
+            return;
+
+        mFormatter = formatter;
+        postInvalidate();
     }
 
     /*********************** STEP MANAGEMENT METHODS ******************/
@@ -609,6 +610,21 @@ final class CircularSeekBar extends View {
      * users from being frustrated when trying to select a fine-grained period.
      */
     private int roundToNearest(int angle) {
+        NumberPicker.Formatter f;
+
         return ((angle + 5) / 10) * 10;
+    }
+
+    /**
+     * Interface used to format current value into a string for presentation.
+     */
+    public interface Formatter {
+        /**
+         * Formats a string representation of the current value.
+         * 
+         * @param value The currently selected value.
+         * @return A formatted string representation.
+         */
+        public String format(double value);
     }
 }
